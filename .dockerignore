@@ -1,0 +1,14 @@
+.env
+.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+bot.log
+sync_data.db
+data/
+.venv
+venv
+README.md
+plan.md
+*.md

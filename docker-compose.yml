@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  dctebot:
+    build: .
+    container_name: dctebot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # 持久化数据库和日志文件到宿主机
+      - ./data:/app/data
