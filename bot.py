@@ -10,9 +10,10 @@ import sys
 
 import discord
 
-from config import DISCORD_TOKEN, DISCORD_CHANNEL_ID, BACKFILL_DELAY, PROXY_URL
+from config import DISCORD_TOKEN, DISCORD_CHANNEL_ID, BACKFILL_DELAY, PROXY_URL, MONITOR_FOLDER_PATH
 from db import init_db, get_last_msg_id, update_last_msg_id
 from forwarder import forward_message
+from folder_monitor import monitor_loop
 
 # ── 日志配置 ────────────────────────────────────────────
 
@@ -74,6 +75,11 @@ async def on_ready():
         return
 
     logger.info("已连接到频道: #%s", channel.name)
+
+    # ── 启动本地文件夹监控 ──
+    if MONITOR_FOLDER_PATH:
+        logger.info("检测到配置了 MONITOR_FOLDER_PATH，正在启动后台文件监控任务...")
+        client.loop.create_task(monitor_loop())
 
     # ── 断线补发 (History Backfill) ──
     channel_id_str = str(DISCORD_CHANNEL_ID)

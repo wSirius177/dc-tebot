@@ -343,3 +343,42 @@ async def forward_message(message) -> bool:
     except Exception as e:
         logger.error("转发消息失败 (ID: %s): %s", message.id, e, exc_info=True)
         return False
+
+
+# ── 本地文件上传 ────────────────────────────────────────
+
+async def send_local_file(filepath: str, chat_id: str) -> bool:
+    """
+    将本地文件发送到指定的 Telegram 群组。
+    自动通过扩展名判断是作为图片(photo)还是普通文件(document)发送。
+    """
+    import os
+    if not os.path.isfile(filepath):
+        logger.error("文件不存在: %s", filepath)
+        return False
+        
+    filename = os.path.basename(filepath)
+    ext = os.path.splitext(filename)[1].lower()
+    is_image = ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
+    
+    try:
+        with open(filepath, 'rb') as f:
+            if is_image:
+                await bot.send_photo(
+                    chat_id=chat_id,
+                    photo=f,
+                    caption=f"[自动上传] {filename}"
+                )
+                logger.info("本地图片上传成功: %s", filename)
+            else:
+                await bot.send_document(
+                    chat_id=chat_id,
+                    document=f,
+                    filename=filename,
+                    caption=f"[自动上传] {filename}"
+                )
+                logger.info("本地文件上传成功: %s", filename)
+        return True
+    except Exception as e:
+        logger.error("本地文件上传失败 (%s): %s", filepath, e, exc_info=True)
+        return False

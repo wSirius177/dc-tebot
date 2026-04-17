@@ -18,6 +18,7 @@ build/
 # 运行时数据和日志
 bot.log
 sync_data.db
+monitor_data.db
 data/
 plan.md
 

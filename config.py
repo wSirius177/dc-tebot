@@ -29,3 +29,9 @@ TELEGRAM_CHAT_ID: str = _require("TELEGRAM_CHAT_ID")
 # ── 可选配置 ──────────────────────────────────────────────
 PROXY_URL: str | None = os.getenv("PROXY_URL") or None
 BACKFILL_DELAY: float = float(os.getenv("BACKFILL_DELAY", "1.0"))
+
+# ── 监控上传配置 ──────────────────────────────────────────
+MONITOR_FOLDER_PATH: str | None = os.getenv("MONITOR_FOLDER_PATH")
+MONITOR_INTERVAL: float = float(os.getenv("MONITOR_INTERVAL", "60.0"))
+# 如果没有独立设置监控的TG群ID，默认使用主发TG群ID
+MONITOR_TG_CHAT_ID: str = os.getenv("MONITOR_TG_CHAT_ID") or TELEGRAM_CHAT_ID

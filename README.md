@@ -6,8 +6,10 @@
 
 - 📡 **实时转发** — 监听 Discord 频道消息，即时转发到 Telegram
 - 📎 **多类型支持** — 文字、图片、文件、嵌入内容、贴纸均可转发
+- 📂 **文件夹监控** — 自动监控本地文件夹新文件并上传到 Telegram
+- 📦 **自动归档** — 文件上传成功后自动移动到 `uploaded` 子目录，方便清理
 - 🔄 **断线补发** — 程序重启后自动补发遗漏的消息
-- 💾 **状态记忆** — SQLite 持久化存储同步位置
+- 💾 **状态记忆** — SQLite 持久化存储同步位置（双数据库隔离）
 - 🌐 **代理支持** — 通过 HTTP 代理连接 Telegram API
 - 🔌 **自动重连** — Discord 断线后自动重连
 - 📝 **日志记录** — 控制台 + 文件双重日志
@@ -60,6 +62,11 @@ PROXY_URL=http://127.0.0.1:7890
 > - `DISCORD_CHANNEL_ID`: 在 Discord 中右键频道 → 复制频道 ID（需开启开发者模式）
 > - `TELEGRAM_CHAT_ID`: 以 `-100` 开头的群组 ID，可通过 [@userinfobot](https://t.me/userinfobot) 获取
 > - `PROXY_URL`: 如果不需要代理可留空或删除该行
+> 
+> **本地文件夹监控（可选）**:
+> - `MONITOR_FOLDER_PATH`: 要监控的本地文件夹绝对路径（例如 `D:\images`）。留空则关闭此功能。
+> - `MONITOR_INTERVAL`: 扫描频率（秒），默认 `60`。
+> - `MONITOR_TG_CHAT_ID`: 监控文件上传到的目标群组（不填则使用 `TELEGRAM_CHAT_ID`）。
 
 ### 3. 启动运行
 
@@ -113,10 +120,12 @@ python bot.py
 
 ```
 dctebot/
-├── bot.py               # 主入口 — Discord 客户端与事件处理
+├── bot.py               # 主入口 — Discord 客户端与监控任务管理
+├── folder_monitor.py    # 监控逻辑 — 定期扫描本地文件夹与移动归档
+├── forwarder.py         # 转发器 — Telegram 消息/文件发送逻辑
 ├── config.py            # 配置加载 — 环境变量读取与校验
-├── db.py                # 数据库 — SQLite 同步状态管理
-├── forwarder.py         # 转发器 — Telegram 消息发送逻辑
+├── db.py                # 数据库 — Discord 同步状态管理 (sync_data.db)
+├── monitor_db.py        # 数据库 — 本地文件上传状态管理 (monitor_data.db)
 ├── Dockerfile           # Docker 镜像构建文件
 ├── docker-compose.yml   # Docker Compose 编排文件
 ├── .env.example         # 环境变量模板
