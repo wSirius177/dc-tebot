@@ -22,14 +22,25 @@ def _create_bot() -> telegram.Bot:
     """
     创建 Telegram Bot 实例。
     如果配置了代理，则使用 httpx 代理客户端。
+    设置较长的超时时间以应对代理网络波动。
     """
     if PROXY_URL:
         logger.info("Telegram Bot 使用代理: %s", PROXY_URL)
-        request = HTTPXRequest(proxy_url=PROXY_URL)
+        request = HTTPXRequest(
+            proxy_url=PROXY_URL,
+            read_timeout=120.0,
+            write_timeout=120.0,
+            connect_timeout=30.0,
+        )
         return telegram.Bot(token=TELEGRAM_BOT_TOKEN, request=request)
     else:
         logger.info("Telegram Bot 未使用代理（直连）")
-        return telegram.Bot(token=TELEGRAM_BOT_TOKEN)
+        request = HTTPXRequest(
+            read_timeout=60.0,
+            write_timeout=60.0,
+            connect_timeout=30.0,
+        )
+        return telegram.Bot(token=TELEGRAM_BOT_TOKEN, request=request)
 
 
 bot = _create_bot()
@@ -347,12 +358,14 @@ async def forward_message(message) -> bool:
 
 # ── 本地文件上传 ────────────────────────────────────────
 
-async def send_local_file(filepath: str, chat_id: str) -> bool:
+async def send_local_file(filepath: str, chat_id: str, max_retries: int = 3) -> bool:
     """
     将本地文件发送到指定的 Telegram 群组。
     自动通过扩展名判断是作为图片(photo)还是普通文件(document)发送。
+    网络失败时自动重试，最多重试 max_retries 次。
     """
     import os
+    import asyncio
     if not os.path.isfile(filepath):
         logger.error("文件不存在: %s", filepath)
         return False
@@ -361,24 +374,40 @@ async def send_local_file(filepath: str, chat_id: str) -> bool:
     ext = os.path.splitext(filename)[1].lower()
     is_image = ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
     
-    try:
-        with open(filepath, 'rb') as f:
-            if is_image:
-                await bot.send_photo(
-                    chat_id=chat_id,
-                    photo=f,
-                    caption=f"[自动上传] {filename}"
+    for attempt in range(1, max_retries + 1):
+        try:
+            with open(filepath, 'rb') as f:
+                if is_image:
+                    await bot.send_photo(
+                        chat_id=chat_id,
+                        photo=f,
+                        caption=f"[自动上传] {filename}",
+                        read_timeout=120,
+                        write_timeout=120,
+                    )
+                    logger.info("本地图片上传成功: %s", filename)
+                else:
+                    await bot.send_document(
+                        chat_id=chat_id,
+                        document=f,
+                        filename=filename,
+                        caption=f"[自动上传] {filename}",
+                        read_timeout=120,
+                        write_timeout=120,
+                    )
+                    logger.info("本地文件上传成功: %s", filename)
+            return True
+        except Exception as e:
+            if attempt < max_retries:
+                wait_time = attempt * 10  # 第1次等10秒，第2次等20秒
+                logger.warning(
+                    "本地文件上传失败 (%s)，第 %d/%d 次尝试，%d 秒后重试: %s",
+                    filename, attempt, max_retries, wait_time, e
                 )
-                logger.info("本地图片上传成功: %s", filename)
+                await asyncio.sleep(wait_time)
             else:
-                await bot.send_document(
-                    chat_id=chat_id,
-                    document=f,
-                    filename=filename,
-                    caption=f"[自动上传] {filename}"
+                logger.error(
+                    "本地文件上传最终失败 (%s)，已重试 %d 次: %s",
+                    filepath, max_retries, e, exc_info=True
                 )
-                logger.info("本地文件上传成功: %s", filename)
-        return True
-    except Exception as e:
-        logger.error("本地文件上传失败 (%s): %s", filepath, e, exc_info=True)
-        return False
+                return False
