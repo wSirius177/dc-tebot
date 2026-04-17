@@ -1,5 +1,9 @@
 # 更新日志 (Changelog)
 
+## [v1.1.2] - 2026-04-17
+### 修复 (Bug Fixes)
+- **修复代理参数兼容性错误**：针对新版 `python-telegram-bot` 支持的 httpx 更新，修正了 `forwarder.py` 内部 `HTTPXRequest` 代理传参错误的问题，将 `proxy_url` 参数更改回 `proxy` 从而修复无法启动抛出 `TypeError: HTTPXRequest.__init__() got an unexpected keyword argument 'proxy_url'` 的异常报错。
+
 ## [v1.1.1] - 2026-04-17
 ### 优化 (Enhancements)
 - **增加大文件长连接支持**：Telegram Bot HTTPX 请求的读写超时时间（`read_timeout` / `write_timeout`）从默认设置分别提高到了 120 秒，显著降低由于代理网络波动或上传大体积文件导致的 `httpx.ReadTimeout` 报错。

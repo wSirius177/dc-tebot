@@ -27,7 +27,7 @@ def _create_bot() -> telegram.Bot:
     if PROXY_URL:
         logger.info("Telegram Bot 使用代理: %s", PROXY_URL)
         request = HTTPXRequest(
-            proxy_url=PROXY_URL,
+            proxy=PROXY_URL,
             read_timeout=120.0,
             write_timeout=120.0,
             connect_timeout=30.0,
