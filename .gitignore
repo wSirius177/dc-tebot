@@ -21,6 +21,7 @@ sync_data.db
 monitor_data.db
 data/
 plan.md
+issues_summary.md
 
 # IDE 配置
 .vscode/

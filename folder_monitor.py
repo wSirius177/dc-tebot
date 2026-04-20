@@ -55,9 +55,18 @@ async def monitor_loop():
                     if not os.path.isfile(full_path):
                         continue
                         
-                    # 检查数据库是否标记过已上传（防重复的双重保险）
+                    # 检查数据库是否标记过已上传
                     if is_file_uploaded(entry):
-                        logger.debug("文件之前已上传(存在数据库记录)，跳过: %s", entry)
+                        # 文件已上传过但仍在原位 → 说明上次移动（归档）失败了
+                        # 仅重试移动操作，不再重复上传
+                        target_path = os.path.join(uploaded_dir, entry)
+                        try:
+                            if os.path.exists(target_path):
+                                os.remove(target_path)
+                            shutil.move(full_path, target_path)
+                            logger.info("补做归档成功（上次移动失败的遗留文件）: %s", entry)
+                        except Exception as move_err:
+                            logger.debug("补做归档仍失败 (%s)，文件可能仍被占用: %s", entry, move_err)
                         continue
                         
                     logger.info("发现新文件，准备上传: %s", entry)
@@ -78,7 +87,7 @@ async def monitor_loop():
                             shutil.move(full_path, target_path)
                             logger.info("文件已成功归档到 uploaded 文件夹: %s", entry)
                         except Exception as move_err:
-                            logger.error("文件移动失败 (%s): %s", entry, move_err)
+                            logger.error("文件移动失败 (%s)，下一轮扫描将自动重试归档: %s", entry, move_err)
                             
         except Exception as e:
             logger.error("监控扫描任务出现异常: %s", e, exc_info=True)

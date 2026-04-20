@@ -1,5 +1,16 @@
 # 更新日志 (Changelog)
 
+## [v1.2.0] - 2026-04-20
+### 新增 (Features)
+- **Discord 转发功能开关**：新增 `ENABLE_DISCORD_FORWARDING` 环境变量（True/False）。设为 False 时程序不再启动 Discord 客户端，仅运行本地文件夹监控等后台任务，解耦了 Discord 转发与其他功能的强绑定关系。
+- **转发失败自动重试系统**：新增 `failed_tasks` 数据库表，转发失败的消息会被自动记录。后台 `retry_loop` 任务每隔 `RETRY_INTERVAL`（默认 300 秒 / 5 分钟，可在 `.env` 中自定义）扫描一次失败记录并自动重试。成功后自动清除记录，累计失败超过 10 次的消息将放弃重试以防死循环。
+- **独立运行模式**：当 Discord 转发关闭时，程序通过 `asyncio.run()` 独立运行后台任务（文件监控、故障重试），不再依赖 Discord 事件循环。
+
+### 优化 (Enhancements)
+- **附件下载超时调大**：`_download_attachment` 的超时时间从 60 秒提升至 120 秒，大幅降低 10-20MB 大图在网络波动时下载超时的概率。
+- **归档失败自动补做**：本地文件上传成功但移动到 `uploaded/` 文件夹失败时（如文件被占用），下一轮扫描会自动重试移动操作而不再重复上传，彻底杜绝重复上传问题。
+- **配置项解耦**：Discord Token 和频道 ID 改为条件必填（仅 `ENABLE_DISCORD_FORWARDING=True` 时必填），Telegram 配置始终必填。
+
 ## [v1.1.2] - 2026-04-17
 ### 修复 (Bug Fixes)
 - **修复代理参数兼容性错误**：针对新版 `python-telegram-bot` 支持的 httpx 更新，修正了 `forwarder.py` 内部 `HTTPXRequest` 代理传参错误的问题，将 `proxy_url` 参数更改回 `proxy` 从而修复无法启动抛出 `TypeError: HTTPXRequest.__init__() got an unexpected keyword argument 'proxy_url'` 的异常报错。

@@ -63,7 +63,7 @@ async def _download_attachment(url: str) -> Optional[bytes]:
         if PROXY_URL:
             transport_kwargs["proxy"] = PROXY_URL
         async with httpx.AsyncClient(**transport_kwargs) as client:
-            response = await client.get(url, timeout=60.0)
+            response = await client.get(url, timeout=120.0)
             response.raise_for_status()
             return response.content
     except Exception as e:
